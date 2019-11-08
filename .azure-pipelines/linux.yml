@@ -38,7 +38,7 @@ jobs:
 - job: bazel
   dependsOn: ["format"]
   # For master builds, continue even if format fails
-  condition: or(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  condition: and(not(cancelled()), or(succeeded(), ne(variables['Build.Reason'], 'PullRequest')))
   strategy:
     maxParallel: 3
     matrix:
@@ -110,6 +110,17 @@ jobs:
       pathtoPublish: "$(Build.StagingDirectory)/envoy"
       artifactName: $(CI_TARGET)
     condition: always()
+
+  - powershell: |
+      Write-Host "Cancel all jobs..."
+      $url = "$($env:SYSTEM_TEAMFOUNDATIONCOLLECTIONURI)$env:SYSTEM_TEAMPROJECTID/_apis/build/builds/$($env:BUILD_BUILDID)?api-version=2.0"
+      $header = @{ Authorization = "Bearer $env:SYSTEM_ACCESSTOKEN"  }
+      $body = @{ 'status'='Cancelling' } | ConvertTo-Json
+      Invoke-RestMethod -Uri $url -Method Patch -Body $body -Headers $header -ContentType application/json
+    displayName: Cancel the pipeline
+    condition: failed()
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
 - job: docker
   dependsOn: ["bazel"]

@@ -2,6 +2,8 @@
 
 set -e
 
+exit 1
+
 # Quick syntax check of .clang-tidy.
 clang-tidy -dump-config > /dev/null 2> clang-tidy-config-errors.txt
 if [[ -s clang-tidy-config-errors.txt ]]; then
